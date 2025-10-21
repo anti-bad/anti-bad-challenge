@@ -1,0 +1,13 @@
+# Submission Folder
+
+This folder will contain your prediction files.
+
+After running the predict scripts, you should see files like:
+- cls_task1.csv
+- cls_task2.csv
+- gen_task1.json
+- gen_task2.json
+- mul_task1.csv
+- mul_task2.csv
+
+Run `../create_submission.sh` to package these files into submission.zip.

@@ -1,0 +1,19 @@
+# Anti-Bad Challenge - Starter Kit Requirements
+# These are the dependencies needed to run baseline models and generate predictions
+
+# Core dependencies
+torch>=2.0.0
+transformers>=4.36.0
+peft>=0.7.0
+accelerate>=0.25.0
+bitsandbytes>=0.41.0
+
+# Data processing
+datasets>=2.14.0
+tqdm>=4.65.0
+pandas>=1.5.0
+numpy>=1.24.0
+
+# HuggingFace
+huggingface-hub>=0.19.0
+safetensors>=0.3.0
