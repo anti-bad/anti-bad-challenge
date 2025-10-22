@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Classification Track - Prediction Script
+Multilingual Track - Prediction Script
 Generates predictions using a LoRA model on test data for sequence classification.
 Automatically detects base model from adapter_config.json.
 """
@@ -11,7 +11,7 @@ import argparse
 import json
 import logging
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 import pandas as pd
 import torch
@@ -118,22 +118,19 @@ def get_base_model_from_adapter(model_path: str) -> str:
     return base_model_name
 
 
-def disable_attention_cache(model):
-    """Disable attention caching for stable inference."""
-    # Disable at config level
-    if hasattr(model, 'config'):
-        model.config.use_cache = False
-        if hasattr(model.config, 'use_sdpa'):
-            model.config.use_sdpa = False
-        if hasattr(model.config, 'use_flash_attention_2'):
-            model.config.use_flash_attention_2 = False
+def _pick_dtype() -> torch.dtype:
+    """Pick an appropriate dtype automatically."""
+    if torch.cuda.is_available():
+        major, _ = torch.cuda.get_device_capability()
+        return torch.bfloat16 if major >= 8 else torch.float16
+    return torch.float32
 
 
 def load_model_and_tokenizer(
     model_path: str,
     use_quantization: bool = False,
     quantization_bits: int = 16,
-) -> tuple[AutoModelForSequenceClassification, AutoTokenizer]:
+) -> Tuple[AutoModelForSequenceClassification, AutoTokenizer]:
     """
     Load model and tokenizer for sequence classification inference.
     Automatically detects base model and num_labels from saved model.
@@ -167,14 +164,19 @@ def load_model_and_tokenizer(
     # Detect num_labels from adapter weights to align classifier heads
     num_labels = get_num_labels_from_adapter(model_path)
 
-    # Load tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(base_model, use_fast=False)
-    tokenizer.padding_side = "left"
-
-    # Set pad_token_id if not already set
+    # Load tokenizer: fast + right padding is standard for classification
+    tokenizer = AutoTokenizer.from_pretrained(base_model, use_fast=True)
+    tokenizer.padding_side = "right"
     if tokenizer.pad_token_id is None:
-        tokenizer.pad_token_id = tokenizer.eos_token_id
-        tokenizer.pad_token = tokenizer.eos_token
+        # Fallback to eos if pad is missing
+        if tokenizer.eos_token_id is not None:
+            tokenizer.pad_token_id = tokenizer.eos_token_id
+            tokenizer.pad_token = tokenizer.eos_token
+        else:
+            # As a last resort, add a pad token
+            tokenizer.add_special_tokens({"pad_token": "[PAD]"})
+    # dtype selection
+    torch_dtype = _pick_dtype()
 
     # Configure quantization
     quantization_config = None
@@ -196,20 +198,16 @@ def load_model_and_tokenizer(
         else:
             raise ValueError(f"Unsupported quantization_bits: {quantization_bits}")
     else:
-        logging.info("Quantization: Disabled (BF16)")
+        logging.info(f"Quantization: Disabled ({str(torch_dtype).split('.')[-1]})")
 
-    # Create base config - num_labels will be set when loading the adapter
+    # Create base config - set num_labels
     base_config = AutoConfig.from_pretrained(base_model)
-    base_config.use_cache = False
-    base_config.use_flash_attention_2 = False
-    if hasattr(base_config, 'use_sdpa'):
-        base_config.use_sdpa = False
     base_config.num_labels = num_labels
 
     # Model loading kwargs
     model_kwargs = {
         "config": base_config,
-        "torch_dtype": torch.bfloat16,
+        "torch_dtype": torch_dtype,
         "quantization_config": quantization_config,
         "device_map": "auto",
     }
@@ -218,7 +216,7 @@ def load_model_and_tokenizer(
     logging.info("Loading base model...")
     model = AutoModelForSequenceClassification.from_pretrained(base_model, **model_kwargs)
 
-    # Resize embeddings if needed
+    # Resize embeddings if tokenizer added pad token
     if model.get_input_embeddings().weight.shape[0] != len(tokenizer):
         old_size = model.get_input_embeddings().weight.shape[0]
         new_size = len(tokenizer)
@@ -231,9 +229,6 @@ def load_model_and_tokenizer(
 
     # Ensure pad token ID is set in model config
     model.config.pad_token_id = tokenizer.pad_token_id
-
-    # Disable attention cache
-    disable_attention_cache(model)
 
     model.eval()
     logging.info("Model loaded successfully!")
@@ -275,7 +270,7 @@ def predict(args: argparse.Namespace) -> None:
     all_predictions = []
 
     logging.info("Generating predictions...")
-    with torch.no_grad():
+    with torch.inference_mode():
         # Process in batches
         for i in tqdm(range(0, len(test_data), args.batch_size), desc="Predicting"):
             batch_data = test_data[i:i + args.batch_size]
@@ -296,8 +291,8 @@ def predict(args: argparse.Namespace) -> None:
 
             all_predictions.extend(predictions.tolist())
 
-            # Clear cache periodically
-            if torch.cuda.is_available() and i % (args.batch_size * 4) == 0:
+            # Clear cache periodically, skip at i=0
+            if torch.cuda.is_available() and i > 0 and i % (args.batch_size * 4) == 0:
                 torch.cuda.empty_cache()
 
     # Save predictions to CSV
@@ -318,7 +313,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model_path", required=True, help="Path to LoRA adapter directory")
     parser.add_argument("--input_path", required=True, help="Input JSONL file")
     parser.add_argument("--task", type=int, required=True, choices=[1, 2], help="Task number (1 or 2)")
-    parser.add_argument("--output_path", default=None, help="Output CSV file (default: ../../submission/mul_task{task}.csv)")
+    parser.add_argument("--output_path", default=None, help="Output CSV file (default: ../../submission/cls_task{task}.csv)")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size for inference")
     parser.add_argument("--use_quantization", action="store_true", help="Enable quantization")
     parser.add_argument("--quantization_bits", type=int, default=16, choices=[4, 8, 16], help="Quantization bits")
@@ -326,9 +321,8 @@ def parse_args() -> argparse.Namespace:
 
     # Set default output path if not provided
     if args.output_path is None:
-        from pathlib import Path
         script_dir = Path(__file__).parent
-        args.output_path = str(script_dir.parent.parent / "submission" / f"mul_task{args.task}.csv")
+        args.output_path = str(script_dir.parent.parent / "submission" / f"cls_task{args.task}.csv")
 
     return args
 

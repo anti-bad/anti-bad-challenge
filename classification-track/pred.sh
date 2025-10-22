@@ -12,16 +12,17 @@ set -euo pipefail
 # CONFIGURATION - Modify these paths and parameters as needed
 # ============================================================================
 
-# Task ID (1 or 2)
-TASK_ID=1
+# Task ID (1 or 2) - can be overridden by first argument
+TASK_ID=${1:-1}
 
-# Model ID (model1, model2, or model3)
-MODEL_ID="model1"
+# Model ID (model1, model2, or model3) - can be overridden by second argument
+MODEL_ID=${2:-"model1"}
 
 # LoRA adapter directory
 # NOTE: Models are LoRA adapters trained for sequence classification
 # Base model will be auto-detected from adapter_config.json
-MODEL_PATH="./models/task${TASK_ID}/${MODEL_ID}"
+# You can override MODEL_PATH environment variable to use a custom model
+MODEL_PATH=${MODEL_PATH:-"./models/task${TASK_ID}/${MODEL_ID}"}
 
 # Test data path
 TEST_PATH="./data/task${TASK_ID}/test.json"
@@ -29,12 +30,13 @@ TEST_PATH="./data/task${TASK_ID}/test.json"
 # Output will be saved to: ../submission/cls_task${TASK_ID}.csv
 # You can override by setting OUTPUT_PATH variable
 
-# Batch size for inference
-BATCH_SIZE=32
+# Batch size for inference - can be overridden by third argument or BATCH_SIZE env var
+BATCH_SIZE=${3:-${BATCH_SIZE:-4}}
 
 # Quantization (set to true for memory-efficient inference)
-USE_QUANTIZATION=true
-QUANTIZATION_BITS=4  # Options: 4, 8, 16 (16 means no quantization)
+# Can be overridden by USE_QUANTIZATION and QUANTIZATION_BITS env vars
+USE_QUANTIZATION=${USE_QUANTIZATION:-true}
+QUANTIZATION_BITS=${QUANTIZATION_BITS:-4}  # Options: 4, 8, 16 (16 means no quantization)
 
 # ============================================================================
 # PREDICTION

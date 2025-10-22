@@ -12,8 +12,10 @@ set -euo pipefail
 # CONFIGURATION
 # ============================================================================
 
-# Task ID (task1 for Llama models, task2 for Qwen models)
-TASK_ID="task1"
+# Task number (1 or 2) - can be overridden by first argument
+# Task 1: Llama models, Task 2: Qwen models
+TASK_NUM=${1:-1}
+TASK_ID="task${TASK_NUM}"
 
 # Model paths to merge (can be 2 or more)
 # Default: merge all 3 models in the task
@@ -25,8 +27,9 @@ MODEL_3="./models/${TASK_ID}/model3"
 OUTPUT_PATH="./models/${TASK_ID}/wag_merged"
 
 # Quantization (saves memory during merging, does not affect final LoRA adapter)
-USE_QUANTIZATION=true
-QUANTIZATION_BITS=4  # Options: 4, 8, 16 (16 means no quantization)
+# Can be overridden by USE_QUANTIZATION and QUANTIZATION_BITS env vars
+USE_QUANTIZATION=${USE_QUANTIZATION:-true}
+QUANTIZATION_BITS=${QUANTIZATION_BITS:-4}  # Options: 4, 8, 16 (16 means no quantization)
 
 # ============================================================================
 # MERGE MODELS

@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
 """
-LLM Prediction Script
-Generates predictions using a LoRA model on test data.
+Generation Track - Prediction Script
+Generates predictions using a LoRA model on test data for text generation task.
 Automatically detects base model from adapter_config.json.
 """
 
 from __future__ import annotations
-
 import argparse
 import json
 import logging
 from pathlib import Path
 from typing import Dict, List
-
 import torch
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
@@ -22,7 +20,7 @@ logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 
 def load_json_list(path: Path) -> List[Dict]:
-    """Load JSON list from file."""
+    """Load JSON file containing a list of examples."""
     with path.open("r", encoding="utf-8") as fh:
         data = json.load(fh)
     if not isinstance(data, list):
@@ -41,46 +39,41 @@ def get_base_model_from_adapter(model_path: str) -> str:
         Base model name or path
     """
     adapter_config_path = Path(model_path) / "adapter_config.json"
-
     if not adapter_config_path.exists():
         raise FileNotFoundError(
             f"adapter_config.json not found at {adapter_config_path}\n"
             f"Make sure {model_path} is a valid LoRA adapter directory."
         )
-
     with open(adapter_config_path, 'r') as f:
         adapter_config = json.load(f)
-
     base_model_name = adapter_config.get("base_model_name_or_path")
     if not base_model_name:
         raise ValueError(
             f"'base_model_name_or_path' not found in {adapter_config_path}\n"
             f"This field is required to load the base model."
         )
-
     return base_model_name
 
 
 def convert_to_messages(example: Dict) -> List[Dict]:
-    """
-    Convert instruction/input/output format to messages format for inference.
-
-    Chat template will handle all formatting.
-    """
-    # If already in messages format, return as is
+    """Convert example to chat message format."""
     if "messages" in example:
         return example["messages"]
-
-    # Convert instruction/input format
     instruction = example.get("instruction", "")
     input_text = example.get("input", "")
-
     if input_text:
         user_content = f"{instruction}\n\n{input_text}"
     else:
         user_content = instruction
-
     return [{"role": "user", "content": user_content}]
+
+
+def _pick_dtype():
+    """Pick an appropriate dtype automatically."""
+    if torch.cuda.is_available():
+        major, _ = torch.cuda.get_device_capability()
+        return torch.bfloat16 if major >= 8 else torch.float16
+    return torch.float32
 
 
 def load_model_and_tokenizer(
@@ -89,8 +82,8 @@ def load_model_and_tokenizer(
     quantization_bits: int = 16,
 ) -> tuple[AutoModelForCausalLM, AutoTokenizer]:
     """
-    Load model and tokenizer for inference.
-    Automatically detects base model from adapter_config.json.
+    Load model and tokenizer for text generation inference.
+    Automatically detects base model from saved adapter.
 
     Args:
         model_path: Path to LoRA adapter directory
@@ -104,17 +97,14 @@ def load_model_and_tokenizer(
     logging.info("Loading Model")
     logging.info("=" * 60)
 
-    # Auto-detect base model
     base_model = get_base_model_from_adapter(model_path)
     logging.info(f"Base model: {base_model}")
     logging.info(f"LoRA adapter: {model_path}")
 
-    # Load tokenizer
+    # Load tokenizer: left padding is standard for generation
     tokenizer_source = model_path if Path(model_path).exists() else base_model
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_source, use_fast=False)
-    tokenizer.padding_side = "left"  # Left padding for batched inference
-
-    # Set pad_token_id if not already set
+    tokenizer.padding_side = "left"
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
 
@@ -138,14 +128,14 @@ def load_model_and_tokenizer(
         else:
             raise ValueError(f"Unsupported quantization_bits: {quantization_bits}. Use 4, 8, or 16.")
     else:
-        logging.info("Quantization: Disabled (BF16)")
+        torch_dtype = _pick_dtype()
+        logging.info(f"Quantization: Disabled ({str(torch_dtype).split('.')[-1]})")
 
-    # Model loading kwargs
     model_kwargs = {
-        "torch_dtype": torch.bfloat16,
+        "torch_dtype": _pick_dtype(),
         "quantization_config": quantization_config,
         "device_map": "auto",
-        "use_cache": True,  # Enable KV cache for faster inference
+        "use_cache": True,
     }
 
     # Load base model
@@ -162,16 +152,14 @@ def load_model_and_tokenizer(
     # Load LoRA adapter
     logging.info("Loading LoRA adapter...")
     model = PeftModel.from_pretrained(model, model_path, is_trainable=False)
-
     model.eval()
     logging.info("Model loaded successfully!")
     logging.info("=" * 60)
-
     return model, tokenizer
 
 
 def generate_responses(args: argparse.Namespace) -> None:
-    """Generate model predictions for the input dataset."""
+    """Generate text responses for the input dataset."""
     logging.info("")
     logging.info("=" * 60)
     logging.info("Prediction Configuration")
@@ -184,27 +172,25 @@ def generate_responses(args: argparse.Namespace) -> None:
     logging.info(f"Top-p: {args.top_p}")
     logging.info("=" * 60)
 
-    # Load model and tokenizer
     model, tokenizer = load_model_and_tokenizer(
         model_path=args.model_path,
         use_quantization=args.use_quantization,
         quantization_bits=args.quantization_bits,
     )
-
-    # Load dataset
     dataset = load_json_list(Path(args.input_path))
-    logging.info(f"\nGenerating responses for {len(dataset)} examples...")
+    logging.info(f"\nLoaded {len(dataset)} test samples")
     logging.info("")
 
-    outputs: List[Dict] = []
+    # Get device
     device = next(model.parameters()).device
 
-    # Process one sample at a time to avoid cross-sample interference
-    for example in tqdm(dataset, desc="Predicting", ncols=80):
-        # Convert to messages
-        messages = convert_to_messages(example)
+    # Collect predictions (sample-level inference, no batching)
+    outputs: List[Dict] = []
 
-        # Apply chat template
+    logging.info("Generating responses...")
+    for example in tqdm(dataset, desc="Predicting", ncols=80):
+        # Convert to chat format
+        messages = convert_to_messages(example)
         prompt = tokenizer.apply_chat_template(
             messages,
             tokenize=False,
@@ -217,12 +203,10 @@ def generate_responses(args: argparse.Namespace) -> None:
             return_tensors="pt",
             truncation=False,
         ).to(device)
-
-        # Get prompt length
         prompt_length = encoded.input_ids.shape[1]
 
-        # Generate
-        with torch.no_grad():
+        # Generate response
+        with torch.inference_mode():
             generated_ids = model.generate(
                 **encoded,
                 max_new_tokens=args.max_new_tokens,
@@ -234,21 +218,20 @@ def generate_responses(args: argparse.Namespace) -> None:
                 pad_token_id=tokenizer.pad_token_id,
             )
 
-        # Decode only the generated part (excluding input prompt)
+        # Decode only the generated part (excluding prompt)
         output_ids = generated_ids[0][prompt_length:]
         response = tokenizer.decode(output_ids, skip_special_tokens=True).strip()
 
-        # Save result - preserve original fields and add output
+        # Store result
         record = dict(example)
         record["output"] = response
         outputs.append(record)
 
-    # Save predictions
+    # Save predictions to JSON
     output_path = Path(args.output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8") as fh:
         json.dump(outputs, fh, indent=2, ensure_ascii=False)
-
     logging.info("")
     logging.info("=" * 60)
     logging.info(f"Saved {len(outputs)} predictions to {output_path}")
@@ -267,13 +250,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--use_quantization", action="store_true", help="Enable quantization")
     parser.add_argument("--quantization_bits", type=int, default=16, choices=[4, 8, 16], help="Quantization bits")
     args = parser.parse_args()
-
-    # Set default output path if not provided
     if args.output_path is None:
-        from pathlib import Path
         script_dir = Path(__file__).parent
         args.output_path = str(script_dir.parent.parent / "submission" / f"gen_task{args.task}.json")
-
     return args
 
 
