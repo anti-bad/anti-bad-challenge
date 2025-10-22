@@ -31,7 +31,7 @@ Each task includes:
 
 The provided LLMs are mainly based on **Llama** and **Qwen** architectures.
 Please refer to the **model configuration files** (available after downloading models) for detailed model cards and parameter information.
-All models are **LoRA adapters** fine-tuned on all linear modules.
+All models are **LoRA adapters** fine-tuned on all linear modules. The base models (Llama, Qwen) are automatically downloaded from Hugging Face, but note that some base models may be [gated](https://huggingface.co/docs/hub/en/models-gated) and require prior access approval from the model providers.
 
 ---
 
