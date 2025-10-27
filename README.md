@@ -3,7 +3,7 @@
 Official starter kit for the **Anti-Backdoor (Anti-BAD) Challenge @ IEEE SaTML 2026**
 
 **Website:** [https://anti-bad.github.io](https://anti-bad.github.io)
-**Competition Platform:** [CodaBench](https://www.codabench.org/)
+**Competition Platform:** [CodaBench](https://www.codabench.org/competitions/11188/)
 **Hugging Face Hub:** [https://huggingface.co/anti-bad-challenge](https://huggingface.co/anti-bad-challenge)
 
 ---
