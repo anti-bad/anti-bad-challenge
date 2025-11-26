@@ -313,7 +313,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model_path", required=True, help="Path to LoRA adapter directory")
     parser.add_argument("--input_path", required=True, help="Input JSONL file")
     parser.add_argument("--task", type=int, required=True, choices=[1, 2], help="Task number (1 or 2)")
-    parser.add_argument("--output_path", default=None, help="Output CSV file (default: ../../submission/cls_task{task}.csv)")
+    parser.add_argument("--output_path", default=None, help="Output CSV file (default: ../../submission/mul_task{task}.csv)")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size for inference")
     parser.add_argument("--use_quantization", action="store_true", help="Enable quantization")
     parser.add_argument("--quantization_bits", type=int, default=16, choices=[4, 8, 16], help="Quantization bits")
@@ -322,7 +322,7 @@ def parse_args() -> argparse.Namespace:
     # Set default output path if not provided
     if args.output_path is None:
         script_dir = Path(__file__).parent
-        args.output_path = str(script_dir.parent.parent / "submission" / f"cls_task{args.task}.csv")
+        args.output_path = str(script_dir.parent.parent / "submission" / f"mul_task{args.task}.csv")
 
     return args
 
