@@ -31,6 +31,27 @@ For the test phase, you must submit your defense code along with prediction outp
 
 See [`submission/code/README.md`](submission/code/README.md) for detailed requirements.
 
+**3. Submission Package Structure**
+
+Your `submission.zip` should contain:
+
+```
+submission.zip
+├── gen_task1.json          # Generation track predictions
+├── gen_task2.json
+├── cls_task1.csv           # Classification track predictions
+├── cls_task2.csv
+├── mul_task1.csv           # Multilingual track predictions
+├── mul_task2.csv
+└── code/                   # Defense implementation (required for test phase)
+    ├── classification-track/
+    ├── generation-track/
+    ├── multilingual-track/
+    └── README.md           # Instructions to reproduce your results
+```
+
+**Note:** The `code/` directory with your defense implementation is required for the test phase submissions.
+
 ---
 
 ## Overview
