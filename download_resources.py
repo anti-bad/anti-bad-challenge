@@ -11,52 +11,55 @@ from huggingface_hub import snapshot_download
 # Define base directory
 BASE_DIR = Path(__file__).parent
 
+# Define phase ('dev' or 'test')
+PHASE = 'dev'  # This can be changed to 'test' as needed
+
 # Define model mappings: (repo_id, local_path)
 MODEL_DOWNLOADS = [
     # Generation Track - Task 1
-    ("anti-bad-challenge/dev_generation_task1_model1", "generation-track/models/task1/model1"),
-    ("anti-bad-challenge/dev_generation_task1_model2", "generation-track/models/task1/model2"),
-    ("anti-bad-challenge/dev_generation_task1_model3", "generation-track/models/task1/model3"),
+    (f"anti-bad-challenge/{PHASE}_generation_task1_model1", "generation-track/models/task1/model1"),
+    (f"anti-bad-challenge/{PHASE}_generation_task1_model2", "generation-track/models/task1/model2"),
+    (f"anti-bad-challenge/{PHASE}_generation_task1_model3", "generation-track/models/task1/model3"),
 
     # Generation Track - Task 2
-    ("anti-bad-challenge/dev_generation_task2_model1", "generation-track/models/task2/model1"),
-    ("anti-bad-challenge/dev_generation_task2_model2", "generation-track/models/task2/model2"),
-    ("anti-bad-challenge/dev_generation_task2_model3", "generation-track/models/task2/model3"),
+    (f"anti-bad-challenge/{PHASE}_generation_task2_model1", "generation-track/models/task2/model1"),
+    (f"anti-bad-challenge/{PHASE}_generation_task2_model2", "generation-track/models/task2/model2"),
+    (f"anti-bad-challenge/{PHASE}_generation_task2_model3", "generation-track/models/task2/model3"),
 
     # Classification Track - Task 1
-    ("anti-bad-challenge/dev_classification_task1_model1", "classification-track/models/task1/model1"),
-    ("anti-bad-challenge/dev_classification_task1_model2", "classification-track/models/task1/model2"),
-    ("anti-bad-challenge/dev_classification_task1_model3", "classification-track/models/task1/model3"),
+    (f"anti-bad-challenge/{PHASE}_classification_task1_model1", "classification-track/models/task1/model1"),
+    (f"anti-bad-challenge/{PHASE}_classification_task1_model2", "classification-track/models/task1/model2"),
+    (f"anti-bad-challenge/{PHASE}_classification_task1_model3", "classification-track/models/task1/model3"),
 
     # Classification Track - Task 2
-    ("anti-bad-challenge/dev_classification_task2_model1", "classification-track/models/task2/model1"),
-    ("anti-bad-challenge/dev_classification_task2_model2", "classification-track/models/task2/model2"),
-    ("anti-bad-challenge/dev_classification_task2_model3", "classification-track/models/task2/model3"),
+    (f"anti-bad-challenge/{PHASE}_classification_task2_model1", "classification-track/models/task2/model1"),
+    (f"anti-bad-challenge/{PHASE}_classification_task2_model2", "classification-track/models/task2/model2"),
+    (f"anti-bad-challenge/{PHASE}_classification_task2_model3", "classification-track/models/task2/model3"),
 
     # Multilingual Track - Task 1
-    ("anti-bad-challenge/dev_multilingual_task1_model1", "multilingual-track/models/task1/model1"),
-    ("anti-bad-challenge/dev_multilingual_task1_model2", "multilingual-track/models/task1/model2"),
-    ("anti-bad-challenge/dev_multilingual_task1_model3", "multilingual-track/models/task1/model3"),
+    (f"anti-bad-challenge/{PHASE}_multilingual_task1_model1", "multilingual-track/models/task1/model1"),
+    (f"anti-bad-challenge/{PHASE}_multilingual_task1_model2", "multilingual-track/models/task1/model2"),
+    (f"anti-bad-challenge/{PHASE}_multilingual_task1_model3", "multilingual-track/models/task1/model3"),
 
     # Multilingual Track - Task 2
-    ("anti-bad-challenge/dev_multilingual_task2_model1", "multilingual-track/models/task2/model1"),
-    ("anti-bad-challenge/dev_multilingual_task2_model2", "multilingual-track/models/task2/model2"),
-    ("anti-bad-challenge/dev_multilingual_task2_model3", "multilingual-track/models/task2/model3"),
+    (f"anti-bad-challenge/{PHASE}_multilingual_task2_model1", "multilingual-track/models/task2/model1"),
+    (f"anti-bad-challenge/{PHASE}_multilingual_task2_model2", "multilingual-track/models/task2/model2"),
+    (f"anti-bad-challenge/{PHASE}_multilingual_task2_model3", "multilingual-track/models/task2/model3"),
 ]
 
 # Define dataset mappings: (repo_id, local_path)
 DATASET_DOWNLOADS = [
     # Classification Track
-    ("anti-bad-challenge/dev_classification_task1", "classification-track/data/task1"),
-    ("anti-bad-challenge/dev_classification_task2", "classification-track/data/task2"),
+    (f"anti-bad-challenge/{PHASE}_classification_task1", "classification-track/data/task1"),
+    (f"anti-bad-challenge/{PHASE}_classification_task2", "classification-track/data/task2"),
 
     # Generation Track
-    ("anti-bad-challenge/dev_generation_task1", "generation-track/data/task1"),
-    ("anti-bad-challenge/dev_generation_task2", "generation-track/data/task2"),
+    (f"anti-bad-challenge/{PHASE}_generation_task1", "generation-track/data/task1"),
+    (f"anti-bad-challenge/{PHASE}_generation_task2", "generation-track/data/task2"),
 
     # Multilingual Track
-    ("anti-bad-challenge/dev_multilingual_task1", "multilingual-track/data/task1"),
-    ("anti-bad-challenge/dev_multilingual_task2", "multilingual-track/data/task2"),
+    (f"anti-bad-challenge/{PHASE}_multilingual_task1", "multilingual-track/data/task1"),
+    (f"anti-bad-challenge/{PHASE}_multilingual_task2", "multilingual-track/data/task2"),
 ]
 
 

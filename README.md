@@ -8,6 +8,31 @@ Official starter kit for the **Anti-Backdoor (Anti-BAD) Challenge @ IEEE SaTML 2
 
 ---
 
+## Updates for Test Phase
+
+**1. Downloading Test Phase Resources**
+
+To download test phase models and datasets, update the `PHASE` variable in `download_resources.py`:
+
+```python
+PHASE = 'test'  # Change from 'dev' to 'test'
+```
+
+Then run:
+```bash
+python download_resources.py
+```
+
+Test phase assets will be made public on **February 1, 2026 (AoE)**.
+
+**2. Code Submission Requirement**
+
+For the test phase, you must submit your defense code along with prediction outputs to ensure the method is reproducible. Place your code in the `submission/code/` directory and include clear instructions for reproduction.
+
+See [`submission/code/README.md`](submission/code/README.md) for detailed requirements.
+
+---
+
 ## Overview
 
 The Anti-BAD Challenge focuses on **post-training defenses** against backdoor attacks in large language models (LLMs).  
