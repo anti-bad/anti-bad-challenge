@@ -19,14 +19,14 @@ code/
 
 ## Submission Requirements
 
-1. **Code Organization**: Place your defense implementation in the appropriate track directory (classification-track, generation-track, or multilingual-track).
+1. **Code Organization**: Place your defense implementation in the appropriate track directory (classification-track, generation-track, or multilingual-track). You may submit Python scripts (`.py` files) or Jupyter notebooks (`.ipynb` files).
 
 2. **Dependencies**:
    - Include a `requirements.txt` file if your code requires specific Python packages
    - Alternatively, if you have specific version requirements or complex dependencies, you may provide a Docker image ID
 
 3. **Documentation**: **Update this README** with clear instructions on how to run your defense method, including:
-   - Command-line instructions to reproduce your results
+   - Command-line instructions to reproduce your results (or notebook execution instructions)
    - Any configuration or hyperparameters used
    - Runtime requirements: Your defense must complete within **24 hours on a single A100 80GB GPU**
 

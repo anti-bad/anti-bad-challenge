@@ -27,7 +27,7 @@ Test phase assets will be made public on **February 1, 2026 (AoE)**.
 
 **2. Code Submission Requirement**
 
-For the test phase, you must submit your defense code along with prediction outputs to ensure the method is reproducible. Place your code in the `submission/code/` directory and include clear instructions for reproduction.
+For the test phase, you must submit your defense code (Python scripts or Jupyter notebooks) along with prediction outputs to ensure the method is reproducible. **Submissions without code will not be evaluated.** Place your code in the `submission/code/` directory and include clear instructions for reproduction.
 
 See [`submission/code/README.md`](submission/code/README.md) for detailed requirements.
 
