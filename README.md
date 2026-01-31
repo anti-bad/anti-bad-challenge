@@ -8,26 +8,21 @@ Official starter kit for the **Anti-Backdoor (Anti-BAD) Challenge @ IEEE SaTML 2
 
 ---
 
-## Updates for Test Phase
+## 🔔 Updates for Test Phase 🔔
 
 **1. Downloading Test Phase Resources**
 
-To download test phase models and datasets, update the `PHASE` variable in `download_resources.py`:
+The `PHASE` variable in `download_resources.py` has been set to `'test'`. To download test phase models and datasets, simply run:
 
-```python
-PHASE = 'test'  # Change from 'dev' to 'test'
-```
-
-Then run:
 ```bash
 python download_resources.py
 ```
 
-Test phase assets will be made public on **February 1, 2026 (AoE)**.
+Test phase assets have been made public on **February 1, 2026 (AoE)**.
 
 **2. Code Submission Requirement**
 
-For the test phase, you must submit your defense code (Python scripts or Jupyter notebooks) along with prediction outputs to ensure the method is reproducible. **Submissions without code will not be evaluated.** Place your code in the `submission/code/` directory and include clear instructions for reproduction.
+If you participate in the test phase, you should submit your defense code (Python scripts or Jupyter notebooks) along with prediction outputs to ensure the method is reproducible. **Submissions without code will not be evaluated.** Place your code in the `submission/code/` directory and include clear instructions for reproduction.
 
 See [`submission/code/README.md`](submission/code/README.md) for detailed requirements.
 
@@ -168,7 +163,7 @@ If you reference this method, please cite:
 * Development phase: 3 submissions per day (270 total)
 * Test phase: 2 submissions per day (14 total)
 
-During the **test phase**, participants will submit both prediction results and executable code for verification.  
+During the **test phase**, participants may submit both prediction results and executable code for verification.  
 The code should be able to reproduce the submitted outputs within 24 hours on a single NVIDIA A100 GPU.  
 All submitted code will remain **private** and will be used only for evaluation purposes.
 

@@ -12,7 +12,7 @@ from huggingface_hub import snapshot_download
 BASE_DIR = Path(__file__).parent
 
 # Define phase ('dev' or 'test')
-PHASE = 'dev'  # This can be changed to 'test' as needed
+PHASE = 'test'  # Currently set to 'test' for the test phase
 
 # Define model mappings: (repo_id, local_path)
 MODEL_DOWNLOADS = [
