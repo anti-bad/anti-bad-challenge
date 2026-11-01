@@ -3,12 +3,15 @@
 
 # Python cache
 __pycache__/
+*.pyc
 
 # Jupyter
 .ipynb_checkpoints
 
-# Logs
-# *.log
+# Runtime outputs
+outputs/
+**/data/
+**/models/
 *.out
 *.err
 

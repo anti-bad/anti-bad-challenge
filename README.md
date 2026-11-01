@@ -1,178 +1,222 @@
-# Anti-BAD Challenge – Starter Kit
+# Anti-BAD Challenge evaluation kit
 
-Official starter kit for the **Anti-Backdoor (Anti-BAD) Challenge @ IEEE SaTML 2026**
+The Anti-Backdoor (Anti-BAD) Challenge benchmark is now fully released. This
+repository provides the public development and test resources, reference
+metadata, and runnable evaluation code needed to reproduce the competition
+settings and evaluate defenses on the released candidate models.
 
-**Website:** [https://anti-bad.github.io](https://anti-bad.github.io)
-**Competition Platform:** [CodaBench](https://www.codabench.org/competitions/11188/)
-**Hugging Face Hub:** [https://huggingface.co/anti-bad-challenge](https://huggingface.co/anti-bad-challenge)
+The kit covers all three tracks and both tasks per track:
 
----
+| Track | Evaluation pipeline |
+| --- | --- |
+| Classification | prediction → score |
+| Multilingual classification | prediction → score |
+| Generation | prediction → GPT-4o-mini judge → score |
 
-## 🔔 Updates for Test Phase 🔔
+Each task provides three potentially backdoored LoRA adapters. Evaluation uses
+400 examples: 100 clean examples and 100 examples from each of three backdoor
+settings. The released annotations in [`metadata/`](metadata/README.md) enable
+local end-to-end evaluation for both the development and test phases.
 
-**1. Downloading Test Phase Resources**
+## Repository layout
 
-The `PHASE` variable in `download_resources.py` has been set to `'test'`. To download test phase models and datasets, simply run:
-
-```bash
-python download_resources.py
+```text
+anti-bad-challenge/
+├── classification-track/   # classification inference and scoring
+├── generation-track/       # generation, LLM judging, and scoring
+├── multilingual-track/     # multilingual inference and scoring
+├── metadata/               # released dev/test reference annotations
+├── scripts/                # code shared by all tracks
+├── download_resources.py   # selective Hugging Face downloader
+└── outputs/                # created at runtime and ignored by Git
 ```
 
-Test phase assets have been made public on **February 1, 2026 (AoE)**.
+Downloaded datasets and adapters are kept inside each track under `data/` and
+`models/`. They are ignored by Git because they can be restored from Hugging
+Face at any time.
 
-**2. Code Submission Requirement**
+## What's included
 
-If you participate in the test phase, you should submit your defense code (Python scripts or Jupyter notebooks) along with prediction outputs to ensure the method is reproducible. **Submissions without code will not be evaluated.** Place your code in the `submission/code/` directory and include clear instructions for reproduction.
+- **Resource downloader:** select a phase, track, task, and candidate model
+  without downloading the entire benchmark.
+- **Prediction pipelines:** run inference with a released candidate adapter,
+  a WAG model, or a custom defended adapter.
+- **Local evaluation:** score classification predictions directly; generation
+  responses are first judged with `gpt-4o-mini` and then scored.
+- **Released metadata:** inspect the clean and attack-specific annotations used
+  for development- and test-phase evaluation.
+- **WAG baseline:** reproduce the weight-averaging defense by merging the three
+  candidate adapters for a task.
 
-See [`submission/code/README.md`](submission/code/README.md) for detailed requirements.
+## 1. Install dependencies
 
-**3. Submission Package Structure**
+Python 3.10 or newer is recommended.
 
-Your `submission.zip` should contain:
-
-```
-submission.zip
-├── gen_task1.json          # Generation track predictions
-├── gen_task2.json
-├── cls_task1.csv           # Classification track predictions
-├── cls_task2.csv
-├── mul_task1.csv           # Multilingual track predictions
-├── mul_task2.csv
-└── code/                   # Defense implementation (required for test phase)
-    ├── classification-track/
-    ├── generation-track/
-    ├── multilingual-track/
-    └── README.md           # Instructions to reproduce your results
-```
-
-**Note:** The `code/` directory with your defense implementation is required for the test phase submissions.
-
----
-
-## Overview
-
-The Anti-BAD Challenge focuses on **post-training defenses** against backdoor attacks in large language models (LLMs).  
-Participants receive **backdoored models** and develop defense methods that reduce the **Attack Success Rate (ASR)** while maintaining **model utility**.
-
-**Three Tracks – Six Tasks**
-- **Generation Track** (2 tasks): instruction-following models  
-- **Classification Track** (2 tasks): sequence classification  
-- **Multilingual Track** (2 tasks): multilingual-lingual classification  
-
-You may submit to any subset of tasks.
-Your overall leaderboard score is the average across all six tasks. Tasks without valid submissions receive a score of 0.
-
----
-
-## What’s Provided
-
-Each task includes:
-- **Three backdoored LoRA models** (attack methods undisclosed)  
-- **An input-only test dataset** (no ground truth)  
-- **Code scripts** for prediction generation and the baseline method  
-
-The provided LLMs are mainly based on **Llama** and **Qwen** architectures.
-Please refer to the **model configuration files** (available after downloading models) for detailed model cards and parameter information.
-All models are **LoRA adapters** fine-tuned on all linear modules. The base models (Llama, Qwen) are automatically downloaded from Hugging Face, but note that some base models may be [gated](https://huggingface.co/docs/hub/en/models-gated) and require prior access approval from the model providers.
-
----
-
-## Quick Start
-
-### 1 · Install dependencies
 ```bash
 pip install -r requirements.txt
-````
-
-### 2 · Download resources
-
-```bash
-python download_resources.py
 ```
 
-This retrieves all models and test data for the six tasks.
+Some base models are gated on Hugging Face. If a download requires access,
+request it from the model provider and authenticate locally with `huggingface-cli login`.
 
-### 3 · Generate predictions
+The generation judge also needs an OpenAI API key:
+
+```bash
+cp .env.example .env
+# Then set OPENAI_API_KEY in .env.
+```
+
+Classification and multilingual evaluation do not use an external API.
+
+## 2. Download a benchmark phase
+
+The phase is always explicit. The following command downloads all datasets and
+all three candidate adapters for the development phase:
+
+```bash
+python download_resources.py --phase dev
+```
+
+The downloader can select only the resources you need:
+
+```bash
+# One complete track from the public test phase
+python download_resources.py --phase test --track generation
+
+# A single task and candidate model
+python download_resources.py \
+  --phase dev \
+  --track classification \
+  --task 1 \
+  --model model2
+
+# Input datasets only, for two tracks
+python download_resources.py \
+  --phase test \
+  --track classification \
+  --track multilingual \
+  --data-only
+```
+
+`--track`, `--task`, and `--model` may each be repeated. Omitting one selects
+all available values for that option. Use `--models-only` when the inputs are
+already present.
+
+## 3. Evaluate a released model
+
+Run each command from its track directory. Arguments are consistently ordered
+as `<phase> <task> <model>`.
+
+### Classification
 
 ```bash
 cd classification-track
-bash pred.sh 1              # Task 1, model1, batch_size=4 (default)
-bash pred.sh 2 model2       # Task 2, model2, batch_size=4
-bash pred.sh 1 model1 8     # Task 1, model1, batch_size=8
+bash run_evaluation.sh dev 1 model1
 ```
 
-You can also override settings using environment variables:
-```bash
-MODEL_PATH=./PATH_TO_YOUR_MODEL bash pred.sh 1              # use custom model
-USE_QUANTIZATION=false bash pred.sh 1                       # disable quantization
-QUANTIZATION_BITS=8 bash pred.sh 1                          # use 8-bit quantization
-BATCH_SIZE=8 bash pred.sh 1                                 # use larger batch size
+This writes:
+
+```text
+../outputs/dev/classification/task1/model1/
+├── predictions.csv
+└── score.json
 ```
 
-**Hardware Requirements:** We set the default settings as using 4-bit quantization with batch_size=4 to make it accessible for resource-limited environments. A single NVIDIA T4 GPU (16GB) can comfortably run inference. If you have more GPU memory and want full precision, simply set `USE_QUANTIZATION=false`. Note: The generation track performs sample-level inference and does not use batch processing.
-
-Predictions are saved to `submission/` using the required filenames.
-
-### 4 · Create submission package
+### Multilingual classification
 
 ```bash
-bash create_submission.sh
+cd multilingual-track
+bash run_evaluation.sh dev 1 model1
 ```
 
-Generates `submission.zip` ready to upload to **CodaBench**.
+This uses the same prediction and scoring contract as classification and writes
+to `outputs/dev/multilingual/task1/model1/`.
 
----
-
-## Developing Your Defense
-
-You are free to work on a single provided model or on multiple models.
-After applying your defense methods, use the same prediction scripts in this repository to generate outputs for submission.
-
----
-
-## Baseline Defense
-
-A simple **Weight Averaging (WAG)** baseline is included:
+### Generation
 
 ```bash
-cd <track-name>
-bash baseline_wag.sh 1                      # merge models for Task 1
-bash baseline_wag.sh 2                      # merge models for Task 2
-USE_QUANTIZATION=false bash baseline_wag.sh 1   # merge without quantization
+cd generation-track
+bash run_evaluation.sh dev 1 model1
 ```
 
-This merges the three backdoored models to mitigate malicious backdoor behaviors. The merged model will be saved as `wag_merged` and can be used with the prediction scripts. You can override quantization settings using `USE_QUANTIZATION` and `QUANTIZATION_BITS` environment variables.
+The generation pipeline first produces model responses, then judges each
+response with `gpt-4o-mini`, and finally calculates the benchmark score:
 
-If you reference this method, please cite:
+```text
+../outputs/dev/generation/task1/model1/
+├── predictions.json
+├── judgments.jsonl
+└── score.json
+```
 
-> **Ansh Arora, Xuanli He, Maximilian Mozes, Srinibas Swain, Mark Dras, and Qiongkai Xu.**
-> 2024. *[Here's a Free Lunch: Sanitizing Backdoored Models with Model Merge](https://aclanthology.org/2024.findings-acl.894/).*
-> *Findings of the Association for Computational Linguistics: ACL 2024.*
+`judgments.jsonl` is a resumable cache. If an API request is interrupted,
+rerun `run_judge.sh`; completed records are retained. To intentionally discard
+the cache, set `RESTART_ARGS=(--restart)` in that script. LLM judging incurs
+OpenAI API usage.
 
----
+## Run individual stages
 
-## Submission
+Every stage can be run separately, which is useful when evaluating a custom
+defense or inspecting intermediate results:
 
-1. Generate predictions for one or more tasks.
-2. Verify that filenames match the required format (see competition documentation).
-3. Package all results into `submission.zip`.
-4. Upload via **My Submissions** on CodaBench.
+```bash
+cd generation-track
+bash run_prediction.sh test 2 model3
+bash run_judge.sh test 2 model3
+bash run_score.sh test 2 model3
+```
 
-**Submission limits**
+Classification and multilingual tracks expose `run_prediction.sh` and
+`run_score.sh` in the same way. Prediction scripts accept a custom adapter path
+through the `MODEL_PATH` environment variable:
 
-* Development phase: 3 submissions per day (270 total)
-* Test phase: 2 submissions per day (14 total)
+```bash
+MODEL_PATH=/path/to/my_adapter bash run_prediction.sh dev 1 my_defense
+bash run_score.sh dev 1 my_defense
+```
 
-During the **test phase**, participants may submit both prediction results and executable code for verification.  
-The code should be able to reproduce the submitted outputs within 24 hours on a single NVIDIA A100 GPU.  
-All submitted code will remain **private** and will be used only for evaluation purposes.
+The main runtime settings—quantization, batch size, generation length, and
+overwrite behavior—are defined near the top of each shell script so they can be
+changed without navigating through Python code.
 
----
+## Weight-averaging baseline
 
-## Support
+An optional Weight Averaging (WAG) baseline averages the three released
+candidate adapters for a task:
 
-* **Website:** [https://anti-bad.github.io](https://anti-bad.github.io)
-* **Email:** [antibad-competition-satml-2026@googlegroups.com](mailto:antibad-competition-satml-2026@googlegroups.com)
-* **Discord:** [https://discord.gg/x8GqKDF2Rb](https://discord.gg/x8GqKDF2Rb)
+```bash
+cd classification-track
+bash run_wag.sh dev 1
+bash run_evaluation.sh dev 1 wag
+```
 
-Good luck and have fun!
+The same commands are available in all three tracks. WAG always merges exactly
+`model1`, `model2`, and `model3`. A clean reference model is not part of the
+baseline and is never included in the merge.
+
+If you use this baseline, please cite:
+
+> Ansh Arora, Xuanli He, Maximilian Mozes, Srinibas Swain, Mark Dras, and
+> Qiongkai Xu. 2024. [Here's a Free Lunch: Sanitizing Backdoored Models with
+> Model Merge](https://aclanthology.org/2024.findings-acl.894/). Findings of ACL
+> 2024.
+
+## Scoring
+
+For classification tracks, utility is clean accuracy and attack success is the
+fraction of triggered inputs classified as their attack target. For generation,
+utility is judged response quality and attack success is determined by the
+attack-specific content, sentiment, refusal, or jailbreak judge. Attack success
+rates are macro-averaged across the three backdoor settings before utility and
+defense are combined geometrically. Each `score.json` reports the aggregate
+score and the full per-attack breakdown.
+
+The scripts validate record counts, prediction format, and metadata alignment
+before scoring. The metadata remains human-readable so experiments can be
+audited without a separate evaluation bundle.
+
+## Links
+
+- [Challenge website](https://anti-bad.github.io)
+- [Public models and datasets](https://huggingface.co/anti-bad-challenge)
+- [Original CodaBench competition](https://www.codabench.org/competitions/11188/)
